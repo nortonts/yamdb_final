@@ -4,7 +4,7 @@ volumes:
   static_volume:
 services:
   db:
-    image: postgres:latest
+    image: postgres:12.4
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
@@ -13,22 +13,25 @@ services:
   web:
     image: nortonts/yamdb:latest
     build: .
+        restart: always
+    volumes:
+      - static_volume:/code/static
+      - media_volume:/code/media
+    depends_on: 
+      - db
+    env_file: 
+      - ./.env
+
+  nginx:
+    image: nginx:1.19.5
     restart: always
     volumes:
-      - static_volume:/code/static/
-    command: gunicorn api_yamdb.wsgi:application --bind 127.0.0.1:8000
+      - static_volume:/code/static
+      - media_volume:/code/media
+      - ./config/nginx/:/etc/nginx/conf.d
     ports:
-      - "8000:8000"
-    depends_on:
-      - db
-    env_file:
-      - ./.env
-  nginx:
-    build: ./nginx
-    restart: always
-    ports: 
       - "80:80"
     depends_on:
       - web
-    volumes:
-      - static_volume:/code/static/
+    env_file:
+      - ./.env
